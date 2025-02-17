@@ -9,10 +9,9 @@ plots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../plots')
 if not os.path.exists(plots_dir):
     os.makedirs(plots_dir)
 
-# Load data from CSV file
-data = pd.read_csv('../data/tesla_stock_data.csv'
-                   ,parse_dates=['Date'])
-data.set_index('Date',inplace=True)
+# Load data from the processed CSV file
+data = pd.read_csv('../data/tesla_stock_data_processed.csv', parse_dates=['Date'])
+data.set_index('Date', inplace=True)
 
 # Ensure Date is sorted (in case it's not)
 data = data.sort_index()
@@ -23,19 +22,12 @@ print(data.describe())
 
 # Plot the closing price of Tesla stock
 plt.figure(figsize=(14, 7))
-plt.plot(data.index, data['Close']
-         ,label='Closing Price'
-         ,color='dodgerblue'
-         ,linewidth=2)
-
-# Plot the closing price of Tesla stock
-plt.figure(figsize=(14, 7))
-plt.plot(data['Close'], label='Closing Price')
+plt.plot(data.index, data['Close'], label='Closing Price', color='dodgerblue', linewidth=2)
 plt.title('Tesla Stock Closing Price')
 plt.xlabel('Date')
 plt.ylabel('Price [USD]')
 plt.legend()
-plt.savefig('../plots/closing_price.png')  # Save the plot as a PNG file
+plt.savefig(os.path.join(plots_dir, 'closing_price.png'))  # Save the plot as a PNG file
 plt.show()
 
 # Calculate moving averages: 50-day and 200-day
@@ -51,5 +43,5 @@ plt.title('Tesla Stock Price and Moving Averages')
 plt.xlabel('Date')
 plt.ylabel('Price [USD]')
 plt.legend()
-plt.savefig('..plots/price_with_moving_averages.png')
+plt.savefig(os.path.join(plots_dir, 'price_with_moving_averages.png'))  # Save the plot as a PNG file
 plt.show()

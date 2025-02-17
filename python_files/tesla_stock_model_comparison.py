@@ -67,28 +67,28 @@ print(f"Decision Tree Regressor MAE: {dt_mae:.4f}")
 print(f"Random Forest Regressor MAE: {rf_mae:.4f}")
 print(f"Linear Regression MAE: {lr_mae:.4f}")
 
-# Plot the actual vs predicted values for all models
+# Plotting scatter plot for each model
 plt.figure(figsize=(14, 7))
 
-# Plot for Decision Tree
-plt.plot(y_test.index, y_test, label='Actual Closing Price', color='blue', linewidth=1.5, marker='o', markersize=4)
-plt.plot(y_test.index, dt_pred, label='Decision Tree Predicted', color='red', linestyle='dashed', linewidth=1.5, marker='x', markersize=4)
+# Scatter plot for Decision Tree
+plt.scatter(y_test.index, y_test, label='Actual', color='blue', s=20, alpha=0.6, marker='o')
+plt.scatter(y_test.index, dt_pred, label='Decision Tree Predicted', color='red', s=20, alpha=0.6, marker='x')
 
-# Plot for Random Forest
-plt.plot(y_test.index, rf_pred, label='Random Forest Predicted', color='green', linestyle='dotted', linewidth=1.5, marker='s', markersize=4)
+# Scatter plot for Random Forest
+plt.scatter(y_test.index, rf_pred, label='Random Forest Predicted', color='green', s=20, alpha=0.6, marker='s')
 
-# Plot for Linear Regression
-plt.plot(y_test.index, lr_pred, label='Linear Regression Predicted', color='orange', linestyle='-.', linewidth=1.5, marker='^', markersize=4)
+# Scatter plot for Linear Regression
+plt.scatter(y_test.index, lr_pred, label='Linear Regression Predicted', color='orange', s=20, alpha=0.6, marker='^')
 
 # Title and labels
-plt.title('Tesla Stock Price - Actual vs Predicted (Comparison of Models)')
+plt.title('Tesla Stock Price - Actual vs Predicted (Scatter Plot Comparison of Models)')
 plt.xlabel('Date')
 plt.ylabel('Price [USD]')
 
 # Add model comparison text to the plot
-plt.text(0.02, 0.95, f"Decision Tree MSE: {dt_mse:.4f}\nR²: {dt_r2:.4f}\nMAE: {dt_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='red')
-plt.text(0.02, 0.85, f"Random Forest MSE: {rf_mse:.4f}\nR²: {rf_r2:.4f}\nMAE: {rf_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='green')
-plt.text(0.02, 0.75, f"Linear Regression MSE: {lr_mse:.4f}\nR²: {lr_r2:.4f}\nMAE: {lr_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='orange')
+plt.text(0.02, 0.90, f"Decision Tree MSE: {dt_mse:.4f}\nR²: {dt_r2:.4f}\nMAE: {dt_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='red')
+plt.text(0.02, 0.80, f"Random Forest MSE: {rf_mse:.4f}\nR²: {rf_r2:.4f}\nMAE: {rf_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='green')
+plt.text(0.02, 0.70, f"Linear Regression MSE: {lr_mse:.4f}\nR²: {lr_r2:.4f}\nMAE: {lr_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='orange')
 
 # Rotate date labels for better readability
 plt.xticks(rotation=45)
@@ -101,5 +101,5 @@ plt.legend()
 
 # Save the plot to the specified directory
 plt.tight_layout()  # Ensures proper layout with date labels
-plt.savefig(os.path.join(plots_dir, 'actual_vs_predicted_comparison_with_metrics.png'))
+plt.savefig(os.path.join(plots_dir, 'actual_vs_predicted_scatter_comparison.png'))
 plt.show()

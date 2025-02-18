@@ -5,18 +5,21 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import os
-import numpy as np
+import joblib  # For saving the trained model
 
-# Define paths
-current_dir = os.path.dirname(os.path.abspath(__file__))
-plots_dir = os.path.join(current_dir, '../plots/tesla_stock_decision_tree_regression')
-data_path = os.path.join(current_dir, '../data/tesla_stock_data_processed.csv')
+# Ensure that the 'plots/tesla_stock_decision_tree_regression' directory exists
+plots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../plots/tesla_stock_decision_tree_regression')
+if not os.path.exists(plots_dir):
+    os.makedirs(plots_dir)
+
+# Define the path for the data file
+data_path = os.path.join('../data/tesla_stock_data_processed.csv')
 
 # Create the directory for saving plots if it doesn't exist
 os.makedirs(plots_dir, exist_ok=True)
 
 # Load the dataset
-data = pd.read_csv('../data/tesla_stock_data_processed.csv', parse_dates=['Date'])
+data = pd.read_csv(data_path, parse_dates=['Date'])
 data.set_index('Date', inplace=True)
 
 # Prepare feature variables (X) and target variable (y)
@@ -29,6 +32,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # Initialize and train the Decision Tree Regressor
 model = DecisionTreeRegressor(random_state=42)
 model.fit(X_train, y_train)
+
+# Save trained model for import in another script
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../models/decision_tree_model.pkl')
+os.makedirs(os.path.dirname(model_path), exist_ok=True)
+joblib.dump(model, model_path)
 
 # Make predictions
 y_pred = model.predict(X_test)
@@ -68,8 +76,4 @@ plt.savefig(plot_path)
 plt.show()
 
 print(f"Plot saved as: {plot_path}")
-
-
-
-
-
+print(f"Model saved at: {model_path}")

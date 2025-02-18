@@ -1,12 +1,9 @@
 # Import necessary libraries
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import os
+import joblib  # For loading the saved models
 
 # Define paths for the plots directory and the data file
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,46 +13,41 @@ data_path = os.path.join(current_dir, '../data/tesla_stock_data_processed.csv')
 # Create the directory for saving plots if it doesn't exist
 os.makedirs(plots_dir, exist_ok=True)
 
-# Load the cleaned data and set 'Date' as index
+# Load the dataset
 data = pd.read_csv(data_path, parse_dates=['Date'])
 data.set_index('Date', inplace=True)
 
+# Feature engineering: Use the previous day's closing price as a predictor
+if 'Close_Lag1' not in data.columns:
+    data['Close_Lag1'] = data['Close'].shift(1)
+
+# Drop any rows with NaN values (e.g., the first row after shifting)
+data = data.dropna()
+
 # Prepare feature variables (X) and target variable (y)
-X = data[['Open', 'High', 'Low', 'Volume']]
+X = data[['Open', 'High', 'Low', 'Volume']]  # Used for DT and RF models
 y = data['Close']
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+# For the Linear Regression model, only use the previous day's closing price (Close_Lag1)
+X_lr = data[['Close_Lag1']]  # Features for Linear Regression
 
-# Initialize and train the Decision Tree Regressor
-dt_model = DecisionTreeRegressor(random_state=42)
-dt_model.fit(X_train, y_train)
+# Load the models from the saved .pkl files in the ../models/ folder
+dt_model = joblib.load(os.path.join(current_dir, '../models/decision_tree_model.pkl'))
+rf_model = joblib.load(os.path.join(current_dir, '../models/random_forest_model.pkl'))
+lr_model = joblib.load(os.path.join(current_dir, '../models/linear_regression_model.pkl'))
 
-# Initialize and train the Random Forest Regressor
-rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
-rf_model.fit(X_train, y_train)
-
-# Initialize and train the Linear Regression model
-lr_model = LinearRegression()
-lr_model.fit(X_train, y_train)
-
-# Make predictions for all models
-dt_pred = dt_model.predict(X_test)
-rf_pred = rf_model.predict(X_test)
-lr_pred = lr_model.predict(X_test)
+# Make predictions using the loaded models
+dt_pred = dt_model.predict(X)
+rf_pred = rf_model.predict(X)
+lr_pred = lr_model.predict(X_lr)  # Use X_lr for Linear Regression
 
 # Create a DataFrame with actual and predicted values
 results = pd.DataFrame({
-    'Actual': y_test,
+    'Actual': y,
     'DecisionTree': dt_pred,
     'RandomForest': rf_pred,
     'LinearRegression': lr_pred
 })
-
-# Sort the results by date for correct alignment in the scatter plot
-results.sort_index(inplace=True)
 
 # Calculate evaluation metrics for each model
 dt_mse = mean_squared_error(results['Actual'], results['DecisionTree'])
@@ -81,36 +73,42 @@ print(f"Decision Tree Regressor MAE: {dt_mae:.4f}")
 print(f"Random Forest Regressor MAE: {rf_mae:.4f}")
 print(f"Linear Regression MAE: {lr_mae:.4f}")
 
-# Plotting scatter plot for actual vs predicted values from each model
+# Plot actual vs predicted values
 plt.figure(figsize=(14, 7))
-
-# Scatter plot for actual values (using date index for x-axis)
 plt.scatter(results.index, results['Actual'], label='Actual', color='blue', s=20, alpha=0.6, marker='o')
+plt.scatter(results.index, results['DecisionTree'], label='Decision Tree', color='red', s=20, alpha=0.6, marker='x')
+plt.scatter(results.index, results['RandomForest'], label='Random Forest', color='green', s=20, alpha=0.6, marker='s')
+plt.scatter(results.index, results['LinearRegression'], label='Linear Regression', color='orange', s=20, alpha=0.6, marker='^')
 
-# Scatter plots for each model's predictions
-plt.scatter(results.index, results['DecisionTree'], label='Decision Tree Predicted', color='red', s=20, alpha=0.6, marker='x')
-plt.scatter(results.index, results['RandomForest'], label='Random Forest Predicted', color='green', s=20, alpha=0.6, marker='s')
-plt.scatter(results.index, results['LinearRegression'], label='Linear Regression Predicted', color='orange', s=20, alpha=0.6, marker='^')
-
-# Set title and labels
-plt.title('Tesla Stock Price - Actual vs Predicted (Model Comparison)', fontsize=16)
+# Labels and title
+plt.title('Tesla Stock Price - Actual vs Predicted', fontsize=16)
 plt.xlabel('Date', fontsize=12)
 plt.ylabel('Price [USD]', fontsize=12)
-
-# Add model evaluation metrics text on the plot
-plt.text(0.02, 0.90, f"Decision Tree\nMSE: {dt_mse:.4f}\nR²: {dt_r2:.4f}\nMAE: {dt_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='red')
-plt.text(0.02, 0.75, f"Random Forest\nMSE: {rf_mse:.4f}\nR²: {rf_r2:.4f}\nMAE: {rf_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='green')
-plt.text(0.02, 0.60, f"Linear Regression\nMSE: {lr_mse:.4f}\nR²: {lr_r2:.4f}\nMAE: {lr_mae:.4f}", transform=plt.gca().transAxes, fontsize=10, color='orange')
-
-# Rotate date labels for better readability
+plt.grid(True, linestyle='--', alpha=0.6)
 plt.xticks(rotation=45)
 
-# Add grid and legend for clarity
-plt.grid(True, linestyle='--', alpha=0.6)
-plt.legend()
+# Add model comparison metrics as text on the plot (top-left corner)
+textstr = '\n'.join((
+    f'Decision Tree R²: {dt_r2:.4f}',
+    f'Random Forest R²: {rf_r2:.4f}',
+    f'Linear Regression R²: {lr_r2:.4f}',
+    f'Decision Tree MSE: {dt_mse:.4f}',
+    f'Random Forest MSE: {rf_mse:.4f}',
+    f'Linear Regression MSE: {lr_mse:.4f}',
+    f'Decision Tree MAE: {dt_mae:.4f}',
+    f'Random Forest MAE: {rf_mae:.4f}',
+    f'Linear Regression MAE: {lr_mae:.4f}'
+))
 
-# Save the plot to the specified directory
-plot_path = os.path.join(plots_dir, 'actual_vs_predicted_scatter_comparison.png')
+# Position of the text on the plot (left top corner)
+plt.gca().text(0.05, 0.95, textstr, transform=plt.gca().transAxes, fontsize=12,
+               verticalalignment='top', bbox=dict(boxstyle='round,pad=1', facecolor='white', alpha=0.7))
+
+# Adjust the position of the legend (right side of the plot)
+plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+# Save the plot
+plot_path = os.path.join(plots_dir, 'actual_vs_predicted_scatter_comparison_with_metrics.png')
 plt.tight_layout()
 plt.savefig(plot_path)
 plt.show()

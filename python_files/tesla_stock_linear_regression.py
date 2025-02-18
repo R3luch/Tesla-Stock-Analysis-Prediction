@@ -1,20 +1,18 @@
-# Import necessary libraries
+# tesla_stock_linear_regression.py
+
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
-import matplotlib.pyplot as plt
+import joblib
 import os
+import matplotlib.pyplot as plt
 
-# Define paths for the plots directory and the data file
+# Define the path to save the trained model
 current_dir = os.path.dirname(os.path.abspath(__file__))
-plots_dir = os.path.join(current_dir, '../plots/tesla_stock_linear_regression')
-data_path = os.path.join(current_dir, '../data/tesla_stock_data_processed.csv')
-
-# Create the directory for saving plots if it doesn't exist
-os.makedirs(plots_dir, exist_ok=True)
+model_path = os.path.join(current_dir, "../models/linear_regression_model.pkl")
 
 # Load the cleaned Tesla stock data and set 'Date' as the index
+data_path = os.path.join(current_dir, "../data/tesla_stock_data_processed.csv")
 data = pd.read_csv(data_path, parse_dates=['Date'])
 data.set_index('Date', inplace=True)
 
@@ -22,7 +20,8 @@ data.set_index('Date', inplace=True)
 data.sort_index(inplace=True)
 
 # Feature engineering: Use the previous day's closing price as a predictor
-data['Close_Lag1'] = data['Close'].shift(1)
+if 'Close_Lag1' not in data.columns:
+    data['Close_Lag1'] = data['Close'].shift(1)
 
 # Drop any rows with NaN values (e.g., the first row after shifting)
 data = data.dropna()
@@ -32,38 +31,54 @@ X = data[['Close_Lag1']]  # Predictor: previous day's closing price
 y = data['Close']         # Target: current day's closing price
 
 # Split the data into training and testing sets (80% training, 20% testing)
-# We use shuffle=False to maintain time series order
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
 # Create and train the linear regression model
 model = LinearRegression()
 model.fit(X_train, y_train)
 
-# Predict on the test set
-y_pred = model.predict(X_test)
+# Save trained model for import in another script
+os.makedirs(os.path.dirname(model_path), exist_ok=True)
+joblib.dump(model, model_path)
 
-# Evaluate the model using Mean Squared Error and R-squared metrics
-mse = mean_squared_error(y_test, y_pred)
-r2 = r2_score(y_test, y_pred)
+# Export the trained model as lr_model for use in other scripts
+lr_model = model
 
 # Print evaluation metrics
-print(f'Mean Squared Error: {mse:.4f}')
-print(f'R-squared: {r2:.4f}')
+print(f'Model saved at: {model_path}')
 
-# Plot the actual vs predicted closing prices
+# Create the directory for saving plots if it doesn't exist
+plots_dir = os.path.join(current_dir, '../plots/tesla_stock_linear_regression')
+if not os.path.exists(plots_dir):
+    os.makedirs(plots_dir)
+
+# Predict on the entire dataset
+y_pred = model.predict(X)
+
+# Create a DataFrame with actual and predicted values
+results = pd.DataFrame({'Actual': y, 'Predicted': y_pred})
+results.sort_index(inplace=True)
+
+# Plot actual vs predicted values
 plt.figure(figsize=(14, 7))
-plt.plot(y_test.index, y_test, label='Actual Closing Price', color='dodgerblue', linewidth=2)
-plt.plot(y_test.index, y_pred, label='Predicted Closing Price', color='orange', linestyle='--', linewidth=2)
-plt.title('Tesla Stock Price Prediction - Linear Regression', fontsize=16)
+plt.plot(results.index, results['Actual'], label='Actual', color='blue', linewidth=2)
+plt.plot(results.index, results['Predicted'], label='Predicted', color='red', linestyle='dashed', linewidth=2)
+
+# Set title and labels
+plt.title('Tesla Stock Price - Actual vs Predicted (Linear Regression)', fontsize=16)
 plt.xlabel('Date', fontsize=12)
 plt.ylabel('Price [USD]', fontsize=12)
-plt.legend()
-plt.xticks(rotation=45)
-plt.grid(True, linestyle='--', alpha=0.6)
-plt.tight_layout()
 
-# Save the plot in the specified directory
-plot_path = os.path.join(plots_dir, 'linear_regression_prediction.png')
+# Rotate date labels for better readability
+plt.xticks(rotation=45)
+
+# Add grid and legend
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.legend()
+
+# Save the plot
+plot_path = os.path.join(plots_dir, 'actual_vs_predicted_linear_regression.png')
+plt.tight_layout()
 plt.savefig(plot_path)
 plt.show()
 

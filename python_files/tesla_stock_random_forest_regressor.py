@@ -5,12 +5,16 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import os
+import joblib  # For saving the trained model
 import numpy as np  # For smoothing operations
 
-# Define paths for the plots directory and the data file
-current_dir = os.path.dirname(os.path.abspath(__file__))
-plots_dir = os.path.join(current_dir, '../plots/tesla_stock_random_forest_regression')
-data_path = os.path.join(current_dir, '../data/tesla_stock_data_processed.csv')
+# Ensure that the 'plots/tesla_stock_random_forest_regressor' directory exists
+plots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../plots/tesla_stock_random_forest_regressor')
+if not os.path.exists(plots_dir):
+    os.makedirs(plots_dir)
+
+# Define the path for the data file
+data_path = os.path.join('../data/tesla_stock_data_processed.csv')
 
 # Create the directory for saving plots if it doesn't exist
 os.makedirs(plots_dir, exist_ok=True)
@@ -20,7 +24,7 @@ data = pd.read_csv(data_path, parse_dates=['Date'])
 
 # Print missing values and duplicate rows
 print(data.isnull().sum())      # Check for missing values
-print(data.duplicated().sum())    # Check for duplicate rows
+print(data.duplicated().sum())  # Check for duplicate rows
 
 # Sort data by date and set 'Date' as the index
 data.sort_values('Date', inplace=True)
@@ -36,6 +40,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # Initialize and train the Random Forest Regressor
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
+
+# Save trained model for import in another script
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../models/random_forest_model.pkl')
+os.makedirs(os.path.dirname(model_path), exist_ok=True)
+joblib.dump(model, model_path)
 
 # Make predictions on the test set
 y_pred = model.predict(X_test)
@@ -80,3 +89,4 @@ plt.savefig(plot_path)
 plt.show()
 
 print(f"Plot saved as: {plot_path}")
+print(f"Model saved at: {model_path}")

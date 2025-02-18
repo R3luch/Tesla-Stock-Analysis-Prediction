@@ -5,23 +5,25 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import os
-import numpy as np  # For sorting
+import numpy as np
 
-# Ensure that the 'plots/tesla_stock_decision_tree_regression' directory exists
-plots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../plots/tesla_stock_decision_tree_regression')
-if not os.path.exists(plots_dir):
-    os.makedirs(plots_dir)
+# Define paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+plots_dir = os.path.join(current_dir, '../plots/tesla_stock_decision_tree_regression')
+data_path = os.path.join(current_dir, '../data/tesla_stock_data_processed.csv')
 
-# Load cleaned data
+# Create the directory for saving plots if it doesn't exist
+os.makedirs(plots_dir, exist_ok=True)
+
+# Load the dataset
 data = pd.read_csv('../data/tesla_stock_data_processed.csv', parse_dates=['Date'])
 data.set_index('Date', inplace=True)
 
-# Prepare the feature and target variables
-# Using 'Close' price as the target and using 'Open', 'High', 'Low', and 'Volume' as features
+# Prepare feature variables (X) and target variable (y)
 X = data[['Open', 'High', 'Low', 'Volume']]
 y = data['Close']
 
-# Split the data into training and testing sets
+# Split data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Initialize and train the Decision Tree Regressor
@@ -31,37 +33,43 @@ model.fit(X_train, y_train)
 # Make predictions
 y_pred = model.predict(X_test)
 
-# Apply a moving average to smooth the predictions
-window_size = 10  # Increase window size for smoother predictions
-y_pred_smoothed = pd.Series(y_pred).rolling(window=window_size).mean()
-
-# Calculate Mean Squared Error
+# Calculate Mean Squared Error (MSE)
 mse = mean_squared_error(y_test, y_pred)
-print(f'Mean Squared Error: {mse}')
+print(f'Mean Squared Error: {mse:.4f}')
 
-# Sort the actual values (y_test) and predictions (y_pred) by date for correct alignment
-y_test_sorted = y_test.sort_index()  # Sort the actual values by date
-y_pred_sorted = y_pred[np.argsort(y_test_sorted.index)]  # Sort predictions by the same date order
-y_pred_smoothed_sorted = y_pred_smoothed[np.argsort(y_test_sorted.index)]  # Sort smoothed predictions
+# Create a DataFrame with actual and predicted values, sorted by date
+results = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred}).sort_index()
 
-# Plot the actual vs predicted values
+# Apply a moving average to smooth the predictions
+window_size = 10  # Adjust as needed
+results['Predicted_Smoothed'] = results['Predicted'].rolling(window=window_size, min_periods=1).mean()
+
+# Plot actual vs smoothed predicted values
 plt.figure(figsize=(14, 7))
 
-# Plot actual closing price as a line
-plt.plot(y_test_sorted.index, y_test_sorted, label='Actual Closing Price', color='blue', linewidth=2)
+# Plot actual closing prices
+plt.plot(results.index, results['Actual'], label='Actual Closing Price', color='blue', linewidth=2)
 
-# Plot smoothed predicted closing price as a line (instead of scatter)
-plt.plot(y_test_sorted.index, y_pred_smoothed_sorted, label='Smoothed Predicted Closing Price', color='red', linestyle='dashed', linewidth=2)
+# Plot smoothed predicted prices
+plt.plot(results.index, results['Predicted_Smoothed'], label='Smoothed Predicted Closing Price',
+         color='red', linestyle='dashed', linewidth=2)
 
-# Title and labels
+# Set plot title and labels
 plt.title('Tesla Stock Price - Actual vs Smoothed Predicted (Decision Tree Regression)', fontsize=16)
 plt.xlabel('Date', fontsize=12)
 plt.ylabel('Price [USD]', fontsize=12)
-
-# Add legend
 plt.legend()
+plt.grid(True, linestyle='--', alpha=0.6)
 
-# Save the plot to the specified directory
-plt.tight_layout()  # Ensure proper layout with date labels
-plt.savefig(os.path.join(plots_dir, 'actual_vs_smoothed_predicted.png'))
+# Save the plot
+plot_path = os.path.join(plots_dir, 'actual_vs_smoothed_predicted.png')
+plt.tight_layout()
+plt.savefig(plot_path)
 plt.show()
+
+print(f"Plot saved as: {plot_path}")
+
+
+
+
+
